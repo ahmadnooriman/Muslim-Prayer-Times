@@ -1,0 +1,10 @@
+{
+  "name": "Muslim Prayer Times",
+  "description": "A Muslim prayer times application featuring GPS-based calculations, database adjustments, Hijri calendar, and moon phase tracking.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
