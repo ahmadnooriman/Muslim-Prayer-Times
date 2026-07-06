@@ -137,7 +137,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                       onClick={handleUseGPS}
                       className={`shrink-0 w-full sm:w-auto px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
                         gpsLoading 
-                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-850 cursor-not-allowed'
+                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-800 cursor-not-allowed'
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-md hover:shadow-lg dark:bg-emerald-700 dark:hover:bg-emerald-600'
                       }`}
                     >
@@ -187,7 +187,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 rounded-full hover:bg-stone-150 dark:hover:bg-stone-800 transition-all text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-xs"
                     >
                       ✕
                     </button>
@@ -207,7 +207,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                           className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all active:scale-97 cursor-pointer ${
                             isCurrent
                               ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 shadow-xs'
-                              : 'bg-white dark:bg-stone-900 border-stone-200/60 dark:border-stone-800/80 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-850 hover:border-stone-300 dark:hover:border-stone-750'
+                              : 'bg-white dark:bg-stone-900 border-stone-200/60 dark:border-stone-800/80 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
                           }`}
                         >
                           <div className={`p-1.5 rounded-lg shrink-0 ${
@@ -238,7 +238,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-stone-50 dark:bg-stone-950/40 border-t border-stone-100 dark:border-stone-800 text-center text-[10px] text-stone-400 dark:text-stone-550 leading-relaxed px-6">
+            <div className="p-4 bg-stone-50 dark:bg-stone-950/40 border-t border-stone-100 dark:border-stone-800 text-center text-[10px] text-stone-400 dark:text-stone-500 leading-relaxed px-6">
               You can also customize coordinates and calculation methods directly using the general Preferences panel.
             </div>
           </motion.div>

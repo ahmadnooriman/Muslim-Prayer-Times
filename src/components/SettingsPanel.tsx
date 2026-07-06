@@ -166,7 +166,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </button>
 
           {showManualForm && (
-            <div className="mt-3 p-4 bg-stone-100/60 dark:bg-stone-850/40 rounded-2xl border border-stone-200 dark:border-stone-800 space-y-3">
+            <div className="mt-3 p-4 bg-stone-100/60 dark:bg-stone-800/40 rounded-2xl border border-stone-200 dark:border-stone-800 space-y-3">
               <div className="space-y-1">
                 <label htmlFor="city-search" className="block text-[10px] font-semibold text-stone-500 dark:text-stone-400 uppercase">
                   City Search (Case Insensitive)
@@ -237,125 +237,114 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
       {/* Database Sources */}
       <div className="space-y-3 pt-4 border-t border-stone-200/60 dark:border-stone-800/60">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+        <label htmlFor="source-select" className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
           Calculation Database Source
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => handleSourceChange('local')}
-            className={`p-3.5 flex flex-col items-start gap-1.5 border rounded-2xl transition-all text-left ${
-              settings.source === 'local'
-                ? 'bg-white dark:bg-stone-900 border-emerald-600 dark:border-emerald-500 ring-1 ring-emerald-600/30 text-stone-800 dark:text-stone-100 shadow-sm'
-                : 'bg-stone-100/40 dark:bg-stone-850/40 border-stone-200/80 dark:border-stone-800/60 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400'
-            }`}
-          >
-            <span className="font-medium text-sm">Offline Precision Engine</span>
-            <span className="text-[10px] text-stone-400 dark:text-stone-500 font-normal leading-tight">
-              Calculates astronomical times instantly in your browser (100% offline).
-            </span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleSourceChange('api')}
-            className={`p-3.5 flex flex-col items-start gap-1.5 border rounded-2xl transition-all text-left ${
-              settings.source === 'api'
-                ? 'bg-white dark:bg-stone-900 border-emerald-600 dark:border-emerald-500 ring-1 ring-emerald-600/30 text-stone-800 dark:text-stone-100 shadow-sm'
-                : 'bg-stone-100/40 dark:bg-stone-850/40 border-stone-200/80 dark:border-stone-800/60 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400'
-            }`}
-          >
-            <span className="font-medium text-sm">Aladhan Public API</span>
-            <span className="text-[10px] text-stone-400 dark:text-stone-500 font-normal leading-tight">
-              Fetches verified timings from regional databases using Aladhan cloud.
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Select Database (Calculation Method) */}
-      <div className="space-y-2">
-        <label htmlFor="method-select" className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-          Prayer Database / Calculation Method
         </label>
         <div className="relative">
           <select
-            id="method-select"
-            value={settings.methodId}
-            onChange={handleMethodChange}
+            id="source-select"
+            value={settings.source}
+            onChange={(e) => handleSourceChange(e.target.value as CalculationSource)}
             className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-3 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all cursor-pointer appearance-none"
           >
-            {CALCULATION_METHODS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
+            <option value="local">Offline Engine (Local Device Calculation)</option>
+            <option value="api">Aladhan Public API (International)</option>
+            <option value="kemenag">Kemenag API (Indonesia Official)</option>
+            <option value="jakim">JAKIM API (Malaysia Official)</option>
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-stone-400 dark:text-stone-500">
             <Database className="w-4 h-4" />
           </div>
         </div>
-        <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal pl-1">
-          {CALCULATION_METHODS.find(m => m.id === settings.methodId)?.description}
-        </p>
       </div>
 
-      {/* Advanced Calculation Settings */}
-      <div className="space-y-4 pt-4 border-t border-stone-200/60 dark:border-stone-800/60">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-          Advanced Calculation Rules
-        </label>
-        
-        {/* Asr Juristic Method */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 flex items-center gap-1">
-            Asr Shadow Method
-            <HelpCircle className="w-3 h-3 text-stone-400 dark:text-stone-500" title="Standard is used by Shafi'i, Maliki, Hanbali. Hanafi shadow method is later." />
-          </label>
-          <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 dark:bg-stone-850 rounded-xl border border-stone-200/60 dark:border-stone-800/60">
-            <button
-              type="button"
-              onClick={() => handleAsrChange('standard')}
-              className={`py-2 text-xs font-medium rounded-lg transition-all ${
-                settings.asrMethod === 'standard'
-                  ? 'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100 shadow-sm font-semibold'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
-              }`}
-            >
-              Standard (Shafi'i, Maliki, Hanbali)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAsrChange('hanafi')}
-              className={`py-2 text-xs font-medium rounded-lg transition-all ${
-                settings.asrMethod === 'hanafi'
-                  ? 'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100 shadow-sm font-semibold'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
-              }`}
-            >
-              Hanafi
-            </button>
+      {/* Select Database (Calculation Method) */}
+      {(settings.source !== 'kemenag' && settings.source !== 'jakim') && (
+        <>
+          <div className="space-y-2">
+            <label htmlFor="method-select" className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+              Prayer Database / Calculation Method
+            </label>
+            <div className="relative">
+              <select
+                id="method-select"
+                value={settings.methodId}
+                onChange={handleMethodChange}
+                className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-3 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all cursor-pointer appearance-none"
+              >
+                {CALCULATION_METHODS.filter(m => settings.source === 'local' || (m.id !== 15 && m.id !== 16)).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-stone-400 dark:text-stone-500">
+                <Database className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal pl-1">
+              {CALCULATION_METHODS.find(m => m.id === settings.methodId)?.description}
+            </p>
           </div>
-        </div>
 
-        {/* High Latitude Adjustment Rules */}
-        <div className="space-y-1.5">
-          <label htmlFor="highlat-select" className="block text-xs font-semibold text-stone-600 dark:text-stone-400">
-            High Latitude Rule (Extreme Locations)
-          </label>
-          <select
-            id="highlat-select"
-            value={settings.highLatRule}
-            onChange={handleHighLatChange}
-            className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 cursor-pointer"
-          >
-            <option value="none">No Adjustment (Default)</option>
-            <option value="middle-night">Middle of the Night (Shab-e-Bedar)</option>
-            <option value="one-seventh">One Seventh of Night Rule</option>
-            <option value="angle-based">Angle-Based (Recommended for High Latitudes)</option>
-          </select>
-        </div>
-      </div>
+          {/* Advanced Calculation Settings */}
+          <div className="space-y-4 pt-4 border-t border-stone-200/60 dark:border-stone-800/60">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+              Advanced Calculation Rules
+            </label>
+            
+            {/* Asr Juristic Method */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 flex items-center gap-1">
+                Asr Shadow Method
+                <HelpCircle className="w-3 h-3 text-stone-400 dark:text-stone-500" title="Standard is used by Shafi'i, Maliki, Hanbali. Hanafi shadow method is later." />
+              </label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 dark:bg-stone-800 rounded-xl border border-stone-200/60 dark:border-stone-800/60">
+                <button
+                  type="button"
+                  onClick={() => handleAsrChange('standard')}
+                  className={`py-2 text-xs font-medium rounded-lg transition-all ${
+                    settings.asrMethod === 'standard'
+                      ? 'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100 shadow-sm font-semibold'
+                      : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                  }`}
+                >
+                  Standard (Shafi'i, Maliki, Hanbali)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAsrChange('hanafi')}
+                  className={`py-2 text-xs font-medium rounded-lg transition-all ${
+                    settings.asrMethod === 'hanafi'
+                      ? 'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100 shadow-sm font-semibold'
+                      : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                  }`}
+                >
+                  Hanafi
+                </button>
+              </div>
+            </div>
+
+            {/* High Latitude Adjustment Rules */}
+            <div className="space-y-1.5">
+              <label htmlFor="highlat-select" className="block text-xs font-semibold text-stone-600 dark:text-stone-400">
+                High Latitude Rule (Extreme Locations)
+              </label>
+              <select
+                id="highlat-select"
+                value={settings.highLatRule}
+                onChange={handleHighLatChange}
+                className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 cursor-pointer"
+              >
+                <option value="none">No Adjustment (Default)</option>
+                <option value="middle-night">Middle of the Night (Shab-e-Bedar)</option>
+                <option value="one-seventh">One Seventh of Night Rule</option>
+                <option value="angle-based">Angle-Based (Recommended for High Latitudes)</option>
+              </select>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

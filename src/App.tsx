@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Coordinates, PrayerSettings, PrayerTimesData } from './types';
+import { PrayerTimesData, PrayerSettings, Coordinates } from './types';
 import { calculateLocalPrayerTimes } from './utils/prayerCalc';
-import { fetchAladhanPrayerTimes } from './utils/prayerApi';
+import { fetchAladhanPrayerTimes, fetchKemenagPrayerTimes, fetchJakimPrayerTimes } from './utils/prayerApi';
 import { gregorianToHijri } from './utils/hijri';
+import { PrayerKey } from './utils/prayerHelpers';
 import { CountdownWidget } from './components/CountdownWidget';
 import { PrayerTimesList } from './components/PrayerTimesList';
 import { PrayerAdjustments } from './components/PrayerAdjustments';
@@ -65,6 +66,19 @@ export default function App() {
   const [settings, setSettings] = useState<PrayerSettings>(DEFAULT_SETTINGS);
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimesData | null>(null);
   
+  const [notifications, setNotifications] = useState<Record<PrayerKey, boolean>>({
+    fajr: true,
+    sunrise: false,
+    dhuhr: true,
+    asr: true,
+    maghrib: true,
+    isha: true
+  });
+
+  const toggleNotification = (key: PrayerKey) => {
+    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+  
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('prayer_times_theme');
@@ -102,6 +116,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<{ text: string; type: 'success' | 'warning' } | null>(null);
   const [isCityModalOpen, setIsCityModalOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'home' | 'settings' | 'information'>('home');
 
   // Time ticker - runs once per second
   useEffect(() => {
@@ -218,27 +233,32 @@ export default function App() {
       setIsRefreshing(true);
       setApiError(null);
       
-      if (settings.source === 'api') {
-        try {
+      try {
+        if (settings.source === 'api') {
           const times = await fetchAladhanPrayerTimes(now, coordinates, settings);
-          if (active) {
-            setPrayerTimes(times);
-          }
-        } catch (err: any) {
-          console.warn("Aladhan API failed, falling back to local engine:", err);
-          if (active) {
-            setApiError("Unable to connect to Aladhan online database. Using local precision engine.");
-            // Graceful fallback to offline astronomical calculator
-            const localTimes = calculateLocalPrayerTimes(now, coordinates.latitude, coordinates.longitude, settings, coordinates.timezoneOffset);
-            setPrayerTimes(localTimes);
-          }
+          if (active) setPrayerTimes(times);
+        } else if (settings.source === 'kemenag') {
+          const times = await fetchKemenagPrayerTimes(now, coordinates, settings);
+          if (active) setPrayerTimes(times);
+        } else if (settings.source === 'jakim') {
+          const times = await fetchJakimPrayerTimes(now, coordinates, settings);
+          if (active) setPrayerTimes(times);
+        } else {
+          // Local direct offline astronomical computation
+          const localTimes = calculateLocalPrayerTimes(now, coordinates.latitude, coordinates.longitude, settings, coordinates.timezoneOffset);
+          if (active) setPrayerTimes(localTimes);
         }
-      } else {
-        // Local direct offline astronomical computation
-        const localTimes = calculateLocalPrayerTimes(now, coordinates.latitude, coordinates.longitude, settings, coordinates.timezoneOffset);
-        setPrayerTimes(localTimes);
+      } catch (err: any) {
+        console.warn(`${settings.source} API failed, falling back to local engine:`, err);
+        if (active) {
+          const sourceName = settings.source === 'kemenag' ? 'Kemenag' : settings.source === 'jakim' ? 'JAKIM' : 'Aladhan';
+          setApiError(`Unable to connect to ${sourceName} online database. Using local precision engine.`);
+          // Graceful fallback to offline astronomical calculator
+          const localTimes = calculateLocalPrayerTimes(now, coordinates.latitude, coordinates.longitude, settings, coordinates.timezoneOffset);
+          setPrayerTimes(localTimes);
+        }
       }
-      setIsRefreshing(false);
+      if (active) setIsRefreshing(false);
     };
 
     loadPrayerTimes();
@@ -248,8 +268,10 @@ export default function App() {
     };
   }, [coordinates.latitude, coordinates.longitude, coordinates.timezoneOffset, settings.source, settings.methodId, settings.asrMethod, settings.highLatRule, settings.adjustments, now.toDateString()]);
 
+  // Check if current time is after Maghrib to advance Hijri date
+  const isAfterMaghrib = prayerTimes ? now.getTime() >= prayerTimes.maghrib.getTime() : false;
   // Translate Gregorian date to Hijri Calendar Date
-  const hijriDate = gregorianToHijri(now, settings.hijriOffset);
+  const hijriDate = gregorianToHijri(now, settings.hijriOffset, isAfterMaghrib);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-stone-950 text-stone-100' : 'bg-[#FAF9F6] text-stone-800'} font-sans selection:bg-emerald-100 selection:text-emerald-900`}>
@@ -315,18 +337,18 @@ export default function App() {
                 <span>{coordinates.city || 'Custom Coordinates'}, {coordinates.country || 'Custom'}</span>
               </button>
               <span className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border ${
-                settings.source === 'api' && !apiError
+                (settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim') && !apiError
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40'
                   : 'bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800'
               }`}>
-                {settings.source === 'api' && !apiError ? (
+                {(settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim') && !apiError ? (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                    Synced with Aladhan
+                    Synced with {settings.source === 'kemenag' ? 'Kemenag' : settings.source === 'jakim' ? 'JAKIM' : 'Aladhan'}
                   </>
                 ) : (
                   <>
-                    <WifiOff className="w-3 h-3 text-stone-400 dark:text-stone-550" />
+                    <WifiOff className="w-3 h-3 text-stone-400 dark:text-stone-500" />
                     Offline Precision Mode
                   </>
                 )}
@@ -347,7 +369,7 @@ export default function App() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-3.5 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl shadow-sm hover:border-stone-300 dark:hover:border-stone-700 active:scale-95 transition-all text-stone-600 dark:text-stone-350 flex items-center justify-center shrink-0"
+              className="p-3.5 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl shadow-sm hover:border-stone-300 dark:hover:border-stone-700 active:scale-95 transition-all text-stone-600 dark:text-stone-400 flex items-center justify-center shrink-0"
               aria-label="Toggle eye-strain theme mode"
               title={isDarkMode ? "Switch to daylight mode" : "Switch to late-night eye-strain mode"}
             >
@@ -385,85 +407,131 @@ export default function App() {
           </div>
         )}
 
+        {/* Navigation Menu */}
+        <nav className="flex overflow-x-auto hide-scrollbar space-x-2 p-1.5 bg-stone-100 dark:bg-stone-900 rounded-2xl w-full sm:w-fit border border-stone-200/60 dark:border-stone-800/80">
+          <button 
+            type="button"
+            onClick={() => setActiveTab('home')} 
+            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'home' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
+          >
+            Home
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('settings')} 
+            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'settings' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
+          >
+            Settings
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('information')} 
+            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'information' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
+          >
+            Information
+          </button>
+        </nav>
+
         {/* Dashboard Grid Layout */}
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Main Panel - Left Side (8 cols on lg) */}
-          <section className="lg:col-span-8 space-y-8">
-            {prayerTimes ? (
-              <>
-                {/* Countdown Widget */}
-                <CountdownWidget 
-                  times={prayerTimes} 
-                  now={now} 
-                  onAlertTriggered={triggerAlertBanner}
-                />
+          {activeTab === 'home' && (
+            <>
+              {/* Main Panel - Left Side (8 cols on lg) */}
+              <section className="lg:col-span-8 space-y-8">
+                {prayerTimes ? (
+                  <>
+                    {/* Countdown Widget */}
+                    <CountdownWidget 
+                      times={prayerTimes} 
+                      now={now} 
+                      onAlertTriggered={triggerAlertBanner}
+                      notifications={notifications}
+                      toggleNotification={toggleNotification}
+                    />
 
-                {/* Prayer Times Schedule List */}
-                <PrayerTimesList 
-                  times={prayerTimes} 
-                  adjustments={settings.adjustments}
-                  now={now}
-                />
+                    {/* Prayer Times Schedule List */}
+                    <PrayerTimesList 
+                      times={prayerTimes} 
+                      adjustments={settings.adjustments}
+                      now={now}
+                      notifications={notifications}
+                      toggleNotification={toggleNotification}
+                    />
+                  </>
+                ) : (
+                  <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
+                    <div className="w-10 h-10 border-4 border-stone-200 dark:border-stone-800 border-t-emerald-600 dark:border-t-emerald-500 rounded-full animate-spin mb-4" />
+                    <h3 className="font-serif text-lg font-semibold text-stone-800 dark:text-stone-200">Calculating Prayer Times</h3>
+                    <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">Please wait while we determine coordinates and astronomical angles...</p>
+                  </div>
+                )}
+              </section>
 
-                {/* Micro Adjustments Panel */}
-                <PrayerAdjustments 
-                  adjustments={settings.adjustments}
-                  hijriOffset={settings.hijriOffset}
-                  onUpdateAdjustments={(adj) => handleUpdateSettings({ ...settings, adjustments: adj })}
-                  onUpdateHijriOffset={(offset) => handleUpdateSettings({ ...settings, hijriOffset: offset })}
+              {/* Secondary Panel - Right Side (4 cols on lg) */}
+              <aside className="lg:col-span-4 space-y-8">
+                {/* Moon Phase Dynamic Card */}
+                <MoonPhaseCard date={now} />
+              </aside>
+            </>
+          )}
+
+          {activeTab === 'settings' && (
+            <>
+              <section className="lg:col-span-8 space-y-8">
+                {/* Core Settings / DB & Location Panel */}
+                <SettingsPanel 
+                  settings={settings}
+                  coordinates={coordinates}
+                  gpsSupported={gpsSupported}
+                  gpsLoading={gpsLoading}
+                  onUpdateSettings={handleUpdateSettings}
+                  onUpdateCoordinates={handleUpdateCoordinates}
+                  onRequestGPS={handleRequestGPS}
                 />
-              </>
-            ) : (
-              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
-                <div className="w-10 h-10 border-4 border-stone-200 dark:border-stone-850 border-t-emerald-600 dark:border-t-emerald-500 rounded-full animate-spin mb-4" />
-                <h3 className="font-serif text-lg font-semibold text-stone-800 dark:text-stone-200">Calculating Prayer Times</h3>
-                <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">Please wait while we determine coordinates and astronomical angles...</p>
+              </section>
+
+              <aside className="lg:col-span-4 space-y-8">
+                {prayerTimes && (
+                  <PrayerAdjustments 
+                    adjustments={settings.adjustments}
+                    hijriOffset={settings.hijriOffset}
+                    onUpdateAdjustments={(adj) => handleUpdateSettings({ ...settings, adjustments: adj })}
+                    onUpdateHijriOffset={(offset) => handleUpdateSettings({ ...settings, hijriOffset: offset })}
+                  />
+                )}
+              </aside>
+            </>
+          )}
+
+          {activeTab === 'information' && (
+            <section className="lg:col-span-8 lg:col-start-3 space-y-8">
+              {/* General Information Card */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-8 shadow-sm space-y-6">
+                <h4 className="font-serif font-bold text-xl text-stone-800 dark:text-stone-100 flex items-center gap-3">
+                  <Info className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
+                  Islamic Calculation Guide
+                </h4>
+                <div className="space-y-4">
+                  <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+                    Prayer times are computed astronomically using the Sun's altitude angles relative to the horizon. 
+                    Slight variations exist between international organizations (databases) due to differing twilight angles:
+                  </p>
+                  <ul className="text-sm text-stone-600 dark:text-stone-300 space-y-3 list-disc pl-6 leading-normal">
+                    <li><strong>Umm Al-Qura:</strong> Official Saudi Arabian standard (Fajr 18.5°, Isha fixed interval).</li>
+                    <li><strong>Kemenag:</strong> Kementerian Agama RI, official Indonesian standard (Fajr 20°, Isha 18°).</li>
+                    <li><strong>JAKIM:</strong> Jabatan Kemajuan Islam Malaysia, official Malaysian standard (Fajr 20°, Isha 18°).</li>
+                    <li><strong>MWL:</strong> Muslim World League standard (Fajr 18°, Isha 17°).</li>
+                    <li><strong>ISNA:</strong> North American standard (Fajr 15°, Isha 15°).</li>
+                    <li><strong>Karachi:</strong> University of Islamic Sciences standard (Fajr 18°, Isha 18°).</li>
+                  </ul>
+                  <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed italic border-t border-stone-100 dark:border-stone-800/80 pt-4 mt-6">
+                    Note: In extreme northern/southern latitudes, twilight can persist all night. Use the "High Latitude Rules" option in Settings to prevent calculation errors.
+                  </p>
+                </div>
               </div>
-            )}
-          </section>
-
-          {/* Secondary Panel - Right Side (4 cols on lg) */}
-          <aside className="lg:col-span-4 space-y-8">
-            
-            {/* Moon Phase Dynamic Card */}
-            <MoonPhaseCard date={now} />
-
-            {/* Core Settings / DB & Location Panel */}
-            <SettingsPanel 
-              settings={settings}
-              coordinates={coordinates}
-              gpsSupported={gpsSupported}
-              gpsLoading={gpsLoading}
-              onUpdateSettings={handleUpdateSettings}
-              onUpdateCoordinates={handleUpdateCoordinates}
-              onRequestGPS={handleRequestGPS}
-            />
-
-            {/* General Information Card */}
-            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-5 shadow-sm space-y-3.5">
-              <h4 className="font-serif font-bold text-stone-800 dark:text-stone-150 flex items-center gap-2 text-sm">
-                <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-                Islamic Calculation Guide
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                Prayer times are computed astronomically using the Sun's altitude angles relative to the horizon. 
-                Slight variations exist between international organizations (databases) due to differing twilight angles:
-              </p>
-              <ul className="text-[11px] text-stone-500 dark:text-stone-400 space-y-1.5 list-disc pl-4 leading-normal">
-                <li><strong>Umm Al-Qura:</strong> Official Saudi Arabian standard (Fajr 18.5°, Isha fixed interval).</li>
-                <li><strong>Kemenag:</strong> Kementerian Agama RI, official Indonesian standard (Fajr 20°, Isha 18°).</li>
-                <li><strong>JAKIM:</strong> Jabatan Kemajuan Islam Malaysia, official Malaysian standard (Fajr 20°, Isha 18°).</li>
-                <li><strong>MWL:</strong> Muslim World League standard (Fajr 18°, Isha 17°).</li>
-                <li><strong>ISNA:</strong> North American standard (Fajr 15°, Isha 15°).</li>
-                <li><strong>Karachi:</strong> University of Islamic Sciences standard (Fajr 18°, Isha 18°).</li>
-              </ul>
-              <p className="text-[10px] text-stone-400 dark:text-stone-550 leading-relaxed italic border-t border-stone-100 dark:border-stone-800/80 pt-2.5">
-                Note: In extreme northern/southern latitudes, twilight can persist all night. Use the "High Latitude Rules" option to prevent calculation errors.
-              </p>
-            </div>
-
-          </aside>
+            </section>
+          )}
 
         </main>
       </div>

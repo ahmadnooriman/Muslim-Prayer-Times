@@ -16,85 +16,39 @@ export const HIJRI_MONTHS = [
 ];
 
 /**
- * Converts a Gregorian Date to Tabular Hijri date
+ * Converts a Gregorian Date to Hijri date using Umm al-Qura calendar
  * @param date The Gregorian date to convert
  * @param offsetDays Manual adjustment offset (-2 to +2 days)
+ * @param isAfterMaghrib Whether the current time is after Maghrib (adds 1 day)
  */
-export function gregorianToHijri(date: Date, offsetDays: number = 0): HijriDate {
-  let y = date.getFullYear();
-  let m = date.getMonth() + 1;
-  let d = date.getDate();
+export function gregorianToHijri(date: Date, offsetDays: number = 0, isAfterMaghrib: boolean = false): HijriDate {
+  // Create a new date object and add offset days + Maghrib adjustment
+  const totalOffsetDays = offsetDays + (isAfterMaghrib ? 1 : 0);
+  const targetDate = new Date(date.getTime() + totalOffsetDays * 24 * 60 * 60 * 1000);
+
+  // Use Intl.DateTimeFormat for accurate Umm al-Qura Islamic calendar
+  const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric'
+  });
+
+  const parts = formatter.formatToParts(targetDate);
   
-  // If month is Jan/Feb, treat as month 13/14 of previous year
-  if (m <= 2) {
-    y -= 1;
-    m += 12;
+  let hDay = 1;
+  let hMonth = 1;
+  let hYear = 1445;
+
+  for (const part of parts) {
+    if (part.type === 'day') hDay = parseInt(part.value, 10);
+    if (part.type === 'month') hMonth = parseInt(part.value, 10);
+    if (part.type === 'year') hYear = parseInt(part.value, 10);
   }
-  
-  const a = Math.floor(y / 100);
-  const b = 2 - a + Math.floor(a / 4);
-  const jd = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + b - 1524.5;
-  
-  // Apply manual offset
-  const adjustedJd = Math.round(jd) + offsetDays;
-  
-  // Hijri civil epoch starts Friday, July 16, 622 CE (JD 1948439.5, or 1948440 for civil start)
-  const epoch = 1948439.5;
-  const daysSinceEpoch = adjustedJd - 1948440;
-  
-  // Standard tabular 30-year cycle has 10631 days
-  // 19 regular years of 354 days, 11 leap years of 355 days
-  const cycleCount = Math.floor(daysSinceEpoch / 10631);
-  let remainingInCycle = daysSinceEpoch % 10631;
-  if (remainingInCycle < 0) {
-    remainingInCycle += 10631;
-  }
-  
-  // Leap years in 30-year cycle: 2, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29
-  const isLeapYearOfCycle = (yr: number): boolean => {
-    const leapYears = [2, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29];
-    return leapYears.includes(yr);
-  };
-  
-  let yearInCycle = 0;
-  let accumulatedDays = 0;
-  
-  for (let yr = 1; yr <= 30; yr++) {
-    const daysInYr = isLeapYearOfCycle(yr) ? 355 : 354;
-    if (remainingInCycle < accumulatedDays + daysInYr) {
-      yearInCycle = yr - 1;
-      break;
-    }
-    accumulatedDays += daysInYr;
-  }
-  
-  const hYear = cycleCount * 30 + yearInCycle + 1;
-  const daysInYear = remainingInCycle - accumulatedDays;
-  
-  let hMonth = 0;
-  let remainingDays = daysInYear;
-  
-  for (let mIdx = 1; mIdx <= 12; mIdx++) {
-    let daysInM = (mIdx % 2 === 1) ? 30 : 29;
-    // Dhu al-Hijjah in a leap year has 30 days
-    if (mIdx === 12 && isLeapYearOfCycle(yearInCycle + 1)) {
-      daysInM = 30;
-    }
-    
-    if (remainingDays < daysInM) {
-      hMonth = mIdx;
-      break;
-    }
-    remainingDays -= daysInM;
-  }
-  
-  if (hMonth === 0) {
-    hMonth = 12;
-  }
-  
-  const hDay = Math.max(1, Math.floor(remainingDays) + 1);
-  const monthName = HIJRI_MONTHS[hMonth - 1];
-  
+
+  // Ensure month is within 1-12 bounds (fallback just in case)
+  const monthIdx = Math.max(0, Math.min(11, hMonth - 1));
+  const monthName = HIJRI_MONTHS[monthIdx];
+
   return {
     day: hDay,
     monthName,

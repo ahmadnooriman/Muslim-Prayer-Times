@@ -108,7 +108,7 @@ export const PrayerAdjustments: React.FC<PrayerAdjustmentsProps> = ({
             <button
               type="button"
               onClick={() => handleHijriChange(-1)}
-              className="p-2 border border-stone-200 dark:border-stone-850 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl active:scale-95 transition-all text-stone-600 dark:text-stone-400"
+              className="p-2 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl active:scale-95 transition-all text-stone-600 dark:text-stone-400"
               title="Subtract day"
             >
               <Minus className="w-4 h-4" />
@@ -119,7 +119,7 @@ export const PrayerAdjustments: React.FC<PrayerAdjustmentsProps> = ({
             <button
               type="button"
               onClick={() => handleHijriChange(1)}
-              className="p-2 border border-stone-200 dark:border-stone-850 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl active:scale-95 transition-all text-stone-600 dark:text-stone-400"
+              className="p-2 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl active:scale-95 transition-all text-stone-600 dark:text-stone-400"
               title="Add day"
             >
               <Plus className="w-4 h-4" />

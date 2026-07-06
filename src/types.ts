@@ -7,7 +7,7 @@ export interface Coordinates {
   timezoneOffset?: number;
 }
 
-export type CalculationSource = 'local' | 'api';
+export type CalculationSource = 'local' | 'api' | 'kemenag' | 'jakim';
 
 export interface PrayerAdjustment {
   fajr: number;

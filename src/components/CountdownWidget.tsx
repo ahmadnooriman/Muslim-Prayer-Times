@@ -7,23 +7,28 @@ interface CountdownWidgetProps {
   times: PrayerTimesData;
   now: Date;
   onAlertTriggered?: (prayerName: string) => void;
+  notifications: Record<PrayerKey, boolean>;
+  toggleNotification: (key: PrayerKey) => void;
 }
 
 export const CountdownWidget: React.FC<CountdownWidgetProps> = ({
   times,
   now,
-  onAlertTriggered
+  onAlertTriggered,
+  notifications,
+  toggleNotification
 }) => {
   const { current, next, nextTime } = getActivePrayerState(times, now);
-  const [audioEnabled, setAudioEnabled] = useState(false);
   const [hasNotified, setHasNotified] = useState<string | null>(null);
 
   const countdown = getCountdownTime(nextTime, now);
   const { hours, minutes, seconds } = countdown;
 
+  const isNextNotified = notifications[next];
+
   // Sound generator using Web Audio API (extremely robust, works 100% offline, zero external files)
   const playAthanNotification = () => {
-    if (!audioEnabled) return;
+    if (!isNextNotified) return;
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;
@@ -123,17 +128,17 @@ export const CountdownWidget: React.FC<CountdownWidgetProps> = ({
         {/* Audio Toggle */}
         <button
           type="button"
-          onClick={() => setAudioEnabled(!audioEnabled)}
+          onClick={() => toggleNotification(next)}
           className={`p-2 rounded-xl border transition-all active:scale-95 flex items-center gap-1.5 ${
-            audioEnabled
+            isNextNotified
               ? 'bg-emerald-800/40 border-emerald-700/50 text-emerald-400'
               : 'bg-stone-700/30 border-stone-700/40 text-stone-400 hover:text-stone-300'
           }`}
-          title={audioEnabled ? "Disable entry notification tone" : "Enable entry notification tone"}
+          title={isNextNotified ? "Disable entry notification tone" : "Enable entry notification tone"}
         >
-          {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          {isNextNotified ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           <span className="text-[10px] font-semibold uppercase tracking-wider hidden sm:inline">
-            {audioEnabled ? 'Adhan Alert On' : 'Alert Muted'}
+            {isNextNotified ? 'Adhan Alert On' : 'Alert Muted'}
           </span>
         </button>
       </div>
