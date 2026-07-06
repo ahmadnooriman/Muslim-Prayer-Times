@@ -1,9 +1,10 @@
-import { PrayerTimesData, PrayerSettings, Coordinates } from '../types';
+import { PrayerTimesData, PrayerSettings, Coordinates, ApiLog } from '../types';
 
 export async function fetchAladhanPrayerTimes(
   date: Date,
   coords: Coordinates,
-  settings: PrayerSettings
+  settings: PrayerSettings,
+  onLog?: (log: ApiLog) => void
 ): Promise<PrayerTimesData> {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -19,12 +20,35 @@ export async function fetchAladhanPrayerTimes(
   
   const url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${coords.latitude}&longitude=${coords.longitude}&method=${method}&school=${school}`;
   
-  const response = await fetch(url);
+  const logEntry: ApiLog = {
+    timestamp: new Date(),
+    source: 'Aladhan',
+    url: url
+  };
+
+  let response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  } catch (error: any) {
+    const err = `Network request failed: ${error.message}`;
+    logEntry.error = err;
+    if (onLog) onLog(logEntry);
+    throw new Error(err);
+  }
+  
+  logEntry.status = response.status;
+  
   if (!response.ok) {
-    throw new Error(`Failed to fetch prayer times from Aladhan API (Status: ${response.status})`);
+    const err = `Failed to fetch prayer times from Aladhan API (Status: ${response.status})`;
+    logEntry.error = err;
+    if (onLog) onLog(logEntry);
+    throw new Error(err);
   }
   
   const result = await response.json();
+  logEntry.responseBody = result;
+  if (onLog) onLog(logEntry);
+
   if (result.code !== 200 || !result.data || !result.data.timings) {
     throw new Error('Invalid response structure from Aladhan API');
   }
@@ -65,22 +89,42 @@ export async function fetchAladhanPrayerTimes(
 export async function fetchJakimPrayerTimes(
   date: Date,
   coords: Coordinates,
-  settings: PrayerSettings
+  settings: PrayerSettings,
+  onLog?: (log: ApiLog) => void
 ): Promise<PrayerTimesData> {
   // We need to fetch zones and find a match for the current city
   const city = coords.city || 'Kuala Lumpur';
   
   // 1. Fetch zones
   const zonesUrl = `https://api.waktusolat.app/zones`;
-  const zonesRes = await fetch(zonesUrl);
+  
+  const zonesLog: ApiLog = { timestamp: new Date(), source: 'JAKIM (Zones)', url: zonesUrl };
+  
+  let zonesRes;
+  try {
+    zonesRes = await fetch(zonesUrl, { signal: AbortSignal.timeout(10000) });
+  } catch (error: any) {
+    zonesLog.error = `Network request failed: ${error.message}`;
+    if (onLog) onLog(zonesLog);
+    throw new Error(zonesLog.error);
+  }
+  
+  zonesLog.status = zonesRes.status;
   if (!zonesRes.ok) {
-    throw new Error(`Failed to fetch zones for JAKIM API (Status: ${zonesRes.status})`);
+    zonesLog.error = `Failed to fetch zones for JAKIM API (Status: ${zonesRes.status})`;
+    if (onLog) onLog(zonesLog);
+    throw new Error(zonesLog.error);
   }
   const zones = await zonesRes.json();
+  zonesLog.responseBody = zones;
   
   // Try to find a matching zone
-  let zoneCode = 'WLY01'; // Default to Kuala Lumpur
-  const searchCity = city.toLowerCase();
+  let zoneCode = ''; // Default to empty
+  let searchCity = city.toLowerCase();
+  
+  if (searchCity.includes('penang')) {
+    searchCity = 'pinang';
+  }
   
   for (const zone of zones) {
     if (zone.daerah.toLowerCase().includes(searchCity) || zone.negeri.toLowerCase().includes(searchCity)) {
@@ -89,13 +133,39 @@ export async function fetchJakimPrayerTimes(
     }
   }
   
+  if (!zoneCode) {
+    const errStr = `JAKIM API: City not found in zones (${city})`;
+    zonesLog.error = errStr;
+    if (onLog) onLog(zonesLog);
+    throw new Error(errStr);
+  }
+  
+  if (onLog) onLog(zonesLog);
+  
   // 2. Fetch prayer times for the zone
   const scheduleUrl = `https://api.waktusolat.app/v2/solat/${zoneCode}`;
-  const scheduleRes = await fetch(scheduleUrl);
+  const scheduleLog: ApiLog = { timestamp: new Date(), source: 'JAKIM (Schedule)', url: scheduleUrl };
+  
+  let scheduleRes;
+  try {
+    scheduleRes = await fetch(scheduleUrl, { signal: AbortSignal.timeout(10000) });
+  } catch (error: any) {
+    scheduleLog.error = `Network request failed: ${error.message}`;
+    if (onLog) onLog(scheduleLog);
+    throw new Error(scheduleLog.error);
+  }
+  
+  scheduleLog.status = scheduleRes.status;
+  
   if (!scheduleRes.ok) {
-    throw new Error(`Failed to fetch schedule from JAKIM API (Status: ${scheduleRes.status})`);
+    scheduleLog.error = `Failed to fetch schedule from JAKIM API (Status: ${scheduleRes.status})`;
+    if (onLog) onLog(scheduleLog);
+    throw new Error(scheduleLog.error);
   }
   const scheduleResult = await scheduleRes.json();
+  scheduleLog.responseBody = scheduleResult;
+  if (onLog) onLog(scheduleLog);
+  
   if (!scheduleResult.prayers || scheduleResult.prayers.length === 0) {
     throw new Error(`JAKIM API: Schedule not found for zone ${zoneCode}`);
   }
@@ -136,19 +206,42 @@ export async function fetchJakimPrayerTimes(
 export async function fetchKemenagPrayerTimes(
   date: Date,
   coords: Coordinates,
-  settings: PrayerSettings
+  settings: PrayerSettings,
+  onLog?: (log: ApiLog) => void
 ): Promise<PrayerTimesData> {
   const city = coords.city || 'Jakarta';
   // 1. Search for city ID
   const searchUrl = `https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(city)}`;
-  const searchRes = await fetch(searchUrl);
+  
+  const searchLog: ApiLog = { timestamp: new Date(), source: 'Kemenag (Search)', url: searchUrl };
+  
+  let searchRes;
+  try {
+    searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(10000) });
+  } catch (error: any) {
+    searchLog.error = `Network request failed: ${error.message}`;
+    if (onLog) onLog(searchLog);
+    throw new Error(searchLog.error);
+  }
+  
+  searchLog.status = searchRes.status;
+  
   if (!searchRes.ok) {
-    throw new Error(`Failed to search city for Kemenag API (Status: ${searchRes.status})`);
+    searchLog.error = `Failed to search city for Kemenag API (Status: ${searchRes.status})`;
+    if (onLog) onLog(searchLog);
+    throw new Error(searchLog.error);
   }
   const searchResult = await searchRes.json();
+  searchLog.responseBody = searchResult;
+  
   if (!searchResult.status || !searchResult.data || searchResult.data.length === 0) {
-    throw new Error(`Kemenag API: City not found (${city})`);
+    const errStr = `Kemenag API: City not found (${city})`;
+    searchLog.error = errStr;
+    if (onLog) onLog(searchLog);
+    throw new Error(errStr);
   }
+  
+  if (onLog) onLog(searchLog);
   
   const cityId = searchResult.data[0].id;
   
@@ -158,11 +251,29 @@ export async function fetchKemenagPrayerTimes(
   const day = String(date.getDate()).padStart(2, '0');
   
   const scheduleUrl = `https://api.myquran.com/v2/sholat/jadwal/${cityId}/${year}/${month}/${day}`;
-  const scheduleRes = await fetch(scheduleUrl);
+  
+  const scheduleLog: ApiLog = { timestamp: new Date(), source: 'Kemenag (Schedule)', url: scheduleUrl };
+  
+  let scheduleRes;
+  try {
+    scheduleRes = await fetch(scheduleUrl, { signal: AbortSignal.timeout(10000) });
+  } catch (error: any) {
+    scheduleLog.error = `Network request failed: ${error.message}`;
+    if (onLog) onLog(scheduleLog);
+    throw new Error(scheduleLog.error);
+  }
+  
+  scheduleLog.status = scheduleRes.status;
+  
   if (!scheduleRes.ok) {
-    throw new Error(`Failed to fetch schedule from Kemenag API (Status: ${scheduleRes.status})`);
+    scheduleLog.error = `Failed to fetch schedule from Kemenag API (Status: ${scheduleRes.status})`;
+    if (onLog) onLog(scheduleLog);
+    throw new Error(scheduleLog.error);
   }
   const scheduleResult = await scheduleRes.json();
+  scheduleLog.responseBody = scheduleResult;
+  if (onLog) onLog(scheduleLog);
+  
   if (!scheduleResult.status || !scheduleResult.data || !scheduleResult.data.jadwal) {
     throw new Error(`Kemenag API: Schedule not found for city ${city}`);
   }

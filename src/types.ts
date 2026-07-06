@@ -52,6 +52,15 @@ export interface HijriDate {
   formatted: string;
 }
 
+export interface ApiLog {
+  timestamp: Date;
+  source: string;
+  url: string;
+  status?: number;
+  responseBody?: any;
+  error?: string;
+}
+
 export interface CalculationMethod {
   id: number;
   name: string;

@@ -14,6 +14,7 @@ interface CitySelectionModalProps {
   onRequestGPS: () => void;
   settings: PrayerSettings;
   onUpdateSettings: (newSettings: PrayerSettings) => void;
+  isRefreshing?: boolean;
 }
 
 export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
@@ -26,6 +27,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
   onRequestGPS,
   settings,
   onUpdateSettings,
+  isRefreshing
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -55,8 +57,19 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
     };
     onUpdateCoordinates(newCoords);
     
+    // Auto-select source
+    const countryStr = (city.country || '').toLowerCase();
+    const cityStr = (city.name || '').toLowerCase();
+    
+    let newSource: 'api' | 'kemenag' | 'jakim' | 'local' = 'api';
+    if (countryStr.includes('indonesia') || cityStr.includes('jakarta')) {
+      newSource = 'kemenag';
+    } else if (countryStr.includes('malaysia') || cityStr.includes('kuala lumpur')) {
+      newSource = 'jakim';
+    }
+
     // Also recommend regional calculation method
-    onUpdateSettings({ ...settings, methodId: city.methodId });
+    onUpdateSettings({ ...settings, methodId: city.methodId, source: newSource });
     onClose();
   };
 
@@ -133,11 +146,11 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                   {gpsSupported && (
                     <button
                       type="button"
-                      disabled={gpsLoading}
+                      disabled={gpsLoading || isRefreshing}
                       onClick={handleUseGPS}
                       className={`shrink-0 w-full sm:w-auto px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
-                        gpsLoading 
-                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-800 cursor-not-allowed'
+                        gpsLoading || isRefreshing
+                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-800 cursor-not-allowed opacity-60'
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-md hover:shadow-lg dark:bg-emerald-700 dark:hover:bg-emerald-600'
                       }`}
                     >
@@ -181,9 +194,10 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                     placeholder="Search city (e.g. Makkah, London, Jakarta, Cairo)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl pl-10 pr-10 py-3 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all shadow-inner"
+                    disabled={isRefreshing}
+                    className={`w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl pl-10 pr-10 py-3 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all shadow-inner ${isRefreshing ? 'opacity-60 cursor-not-allowed' : ''}`}
                   />
-                  {searchQuery && (
+                  {searchQuery && !isRefreshing && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
@@ -203,12 +217,13 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                         <button
                           key={`${city.name}-${city.country}`}
                           type="button"
+                          disabled={isRefreshing}
                           onClick={() => handleCitySelect(city)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all active:scale-97 cursor-pointer ${
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all active:scale-97 ${
                             isCurrent
                               ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 shadow-xs'
                               : 'bg-white dark:bg-stone-900 border-stone-200/60 dark:border-stone-800/80 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
-                          }`}
+                          } ${isRefreshing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <div className={`p-1.5 rounded-lg shrink-0 ${
                             isCurrent

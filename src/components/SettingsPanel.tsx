@@ -12,6 +12,7 @@ interface SettingsPanelProps {
   onUpdateSettings: (newSettings: PrayerSettings) => void;
   onUpdateCoordinates: (newCoords: Coordinates) => void;
   onRequestGPS: () => void;
+  isRefreshing?: boolean;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -21,7 +22,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   gpsLoading,
   onUpdateSettings,
   onUpdateCoordinates,
-  onRequestGPS
+  onRequestGPS,
+  isRefreshing
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showManualForm, setShowManualForm] = useState(false);
@@ -58,8 +60,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       };
       onUpdateCoordinates(newCoords);
       
+      const countryStr = (selected.country || '').toLowerCase();
+      const cityStr = (selected.name || '').toLowerCase();
+      
+      let newSource: 'api' | 'kemenag' | 'jakim' | 'local' = 'api';
+      if (countryStr.includes('indonesia') || cityStr.includes('jakarta')) {
+        newSource = 'kemenag';
+      } else if (countryStr.includes('malaysia') || cityStr.includes('kuala lumpur')) {
+        newSource = 'jakim';
+      }
+
       // Update recommended calculation method for that city
-      onUpdateSettings({ ...settings, methodId: selected.methodId });
+      onUpdateSettings({ ...settings, methodId: selected.methodId, source: newSource });
     }
   };
 
@@ -118,11 +130,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {gpsSupported && (
             <button
               type="button"
-              disabled={gpsLoading}
+              disabled={gpsLoading || isRefreshing}
               onClick={onRequestGPS}
               className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all flex items-center gap-1.5 active:scale-95 ${
-                gpsLoading 
-                  ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-800 cursor-not-allowed'
+                gpsLoading || isRefreshing
+                  ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 border-stone-200 dark:border-stone-800 cursor-not-allowed opacity-60'
                   : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
               }`}
             >
@@ -141,7 +153,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             id="city-select"
             value={POPULAR_CITIES.find(c => c.name === coordinates.city)?.name || ''}
             onChange={(e) => handleCitySelect(e.target.value)}
-            className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 cursor-pointer"
+            disabled={isRefreshing}
+            className={`w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 ${isRefreshing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <option value="">-- Choose an established city --</option>
             {POPULAR_CITIES.map((c) => (
@@ -178,7 +191,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     placeholder="Search city (e.g. Riyadh, London, Jakarta)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl pl-3 pr-8 py-2 text-xs text-stone-700 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all"
+                    disabled={isRefreshing}
+                    className={`w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl pl-3 pr-8 py-2 text-xs text-stone-700 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all ${isRefreshing ? 'opacity-60 cursor-not-allowed' : ''}`}
                   />
                   {searchQuery && (
                     <button
@@ -203,6 +217,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         <button
                           key={`${city.name}-${city.country}`}
                           type="button"
+                          disabled={isRefreshing}
                           onClick={() => {
                             handleCitySelect(city.name);
                             setSearchQuery('');
@@ -211,7 +226,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             isSelected
                               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-medium'
                               : 'hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300'
-                          }`}
+                          } ${isRefreshing ? 'opacity-60 cursor-not-allowed' : ''}`}
                         >
                           <div>
                             <span className="font-semibold">{city.name}</span>
@@ -259,7 +274,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       </div>
 
       {/* Select Database (Calculation Method) */}
-      {(settings.source !== 'kemenag' && settings.source !== 'jakim') && (
+      {(settings.source === 'api') && (
         <>
           <div className="space-y-2">
             <label htmlFor="method-select" className="block text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">

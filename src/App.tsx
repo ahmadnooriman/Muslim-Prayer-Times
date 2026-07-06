@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PrayerTimesData, PrayerSettings, Coordinates } from './types';
+import { PrayerTimesData, PrayerSettings, Coordinates, ApiLog } from './types';
 import { calculateLocalPrayerTimes } from './utils/prayerCalc';
 import { fetchAladhanPrayerTimes, fetchKemenagPrayerTimes, fetchJakimPrayerTimes } from './utils/prayerApi';
 import { gregorianToHijri } from './utils/hijri';
@@ -11,8 +11,9 @@ import { PrayerAdjustments } from './components/PrayerAdjustments';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MoonPhaseCard } from './components/MoonPhaseCard';
 import { CitySelectionModal } from './components/CitySelectionModal';
+import { SyncLogsViewer } from './components/SyncLogsViewer';
 import { POPULAR_CITIES, CityInfo } from './utils/cities';
-import { Calendar, ShieldCheck, WifiOff, Info, HelpCircle, Sun, Moon, MapPin } from 'lucide-react';
+import { Calendar, ShieldCheck, WifiOff, Info, Sun, Moon, MapPin } from 'lucide-react';
 
 // Default initial state
 const DEFAULT_COORDS: Coordinates = {
@@ -112,11 +113,11 @@ export default function App() {
   // UI States
   const [gpsSupported, setGpsSupported] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<{ text: string; type: 'success' | 'warning' } | null>(null);
   const [isCityModalOpen, setIsCityModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'home' | 'settings' | 'information'>('home');
+  const [apiLogs, setApiLogs] = useState<ApiLog[]>([]);
 
   // Time ticker - runs once per second
   useEffect(() => {
@@ -151,14 +152,18 @@ export default function App() {
   }, []);
 
   // Write adjustments & configurations to local storage on change
-  const handleUpdateSettings = (newSettings: PrayerSettings) => {
+  const handleUpdateSettings = (newSettings: PrayerSettings, isFallback = false) => {
     setSettings(newSettings);
     localStorage.setItem('prayer_times_settings', JSON.stringify(newSettings));
+    if (!isFallback) {
+      setApiLogs([]);
+    }
   };
 
   const handleUpdateCoordinates = (newCoords: Coordinates) => {
     setCoordinates(newCoords);
     localStorage.setItem('prayer_times_coords', JSON.stringify(newCoords));
+    setApiLogs([]);
   };
 
   // Trigger active alert overlay banner
@@ -177,7 +182,6 @@ export default function App() {
   const handleRequestGPS = () => {
     if (!('geolocation' in navigator)) return;
     setGpsLoading(true);
-    setApiError(null);
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -204,9 +208,19 @@ export default function App() {
         
         // If a nearest city matches, optionally pre-select its local regional database
         if (nearestCity) {
+          const countryStr = (nearestCity.country || '').toLowerCase();
+          const cityStr = (nearestCity.name || '').toLowerCase();
+          let newSource: 'api' | 'kemenag' | 'jakim' | 'local' = 'api';
+          if (countryStr.includes('indonesia') || cityStr.includes('jakarta')) {
+            newSource = 'kemenag';
+          } else if (countryStr.includes('malaysia') || cityStr.includes('kuala lumpur')) {
+            newSource = 'jakim';
+          }
+
           handleUpdateSettings({
             ...settings,
-            methodId: nearestCity.methodId
+            methodId: nearestCity.methodId,
+            source: newSource
           });
         }
       },
@@ -231,17 +245,29 @@ export default function App() {
     let active = true;
     const loadPrayerTimes = async () => {
       setIsRefreshing(true);
-      setApiError(null);
+      
+      const handleApiLog = (log: ApiLog) => {
+        if (!active) return;
+        setApiLogs(prev => {
+          // Clone the log to avoid mutation issues
+          const clonedLog = { ...log };
+          
+          // Remove any previous versions of this exact same request (same URL and approx same time)
+          const filtered = prev.filter(l => !(l.url === clonedLog.url && Math.abs(l.timestamp.getTime() - clonedLog.timestamp.getTime()) < 5000));
+          
+          return [clonedLog, ...filtered].slice(0, 50);
+        });
+      };
       
       try {
         if (settings.source === 'api') {
-          const times = await fetchAladhanPrayerTimes(now, coordinates, settings);
+          const times = await fetchAladhanPrayerTimes(now, coordinates, settings, handleApiLog);
           if (active) setPrayerTimes(times);
         } else if (settings.source === 'kemenag') {
-          const times = await fetchKemenagPrayerTimes(now, coordinates, settings);
+          const times = await fetchKemenagPrayerTimes(now, coordinates, settings, handleApiLog);
           if (active) setPrayerTimes(times);
         } else if (settings.source === 'jakim') {
-          const times = await fetchJakimPrayerTimes(now, coordinates, settings);
+          const times = await fetchJakimPrayerTimes(now, coordinates, settings, handleApiLog);
           if (active) setPrayerTimes(times);
         } else {
           // Local direct offline astronomical computation
@@ -252,10 +278,26 @@ export default function App() {
         console.warn(`${settings.source} API failed, falling back to local engine:`, err);
         if (active) {
           const sourceName = settings.source === 'kemenag' ? 'Kemenag' : settings.source === 'jakim' ? 'JAKIM' : 'Aladhan';
-          setApiError(`Unable to connect to ${sourceName} online database. Using local precision engine.`);
+          
+          let errorText = `Unable to connect to ${sourceName} database. Falling back to offline engine.`;
+          if (err.message && err.message.includes('City not found')) {
+            errorText = `City not found in ${sourceName} database. Falling back to offline engine. Check API Sync Logs for details.`;
+          } else if (err.message && err.message.includes('Schedule not found')) {
+            errorText = `Schedule not found in ${sourceName} database for this location. Falling back to offline engine. Check API Sync Logs for details.`;
+          } else {
+            errorText = `Network error: Unable to connect to ${sourceName}. Check API Sync Logs for details. Falling back to offline engine.`;
+          }
+
+          setBannerMessage({
+            text: errorText,
+            type: 'warning'
+          });
+          setTimeout(() => setBannerMessage(null), 8000);
+          
           // Graceful fallback to offline astronomical calculator
           const localTimes = calculateLocalPrayerTimes(now, coordinates.latitude, coordinates.longitude, settings, coordinates.timezoneOffset);
           setPrayerTimes(localTimes);
+          handleUpdateSettings({...settings, source: 'local'}, true);
         }
       }
       if (active) setIsRefreshing(false);
@@ -330,18 +372,26 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsCityModalOpen(true)}
-                className="text-xs bg-stone-100 hover:bg-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 px-3 py-1.5 rounded-full font-medium text-stone-800 dark:text-stone-200 transition-all duration-200 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-stone-200/40 dark:border-stone-800 shadow-xs"
-                title="Click to change city"
+                disabled={isRefreshing}
+                className={`text-xs bg-stone-100 hover:bg-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 px-3 py-1.5 rounded-full font-medium text-stone-800 dark:text-stone-200 transition-all duration-200 active:scale-95 flex items-center gap-1.5 border border-stone-200/40 dark:border-stone-800 shadow-xs ${isRefreshing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                title={isRefreshing ? "Syncing schedule..." : "Click to change city"}
               >
                 <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>{coordinates.city || 'Custom Coordinates'}, {coordinates.country || 'Custom'}</span>
               </button>
               <span className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border ${
-                (settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim') && !apiError
+                isRefreshing 
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border-amber-100 dark:border-amber-900/40'
+                  : (settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim')
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40'
                   : 'bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800'
               }`}>
-                {(settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim') && !apiError ? (
+                {isRefreshing ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                    Syncing...
+                  </>
+                ) : (settings.source === 'api' || settings.source === 'kemenag' || settings.source === 'jakim') ? (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                     Synced with {settings.source === 'kemenag' ? 'Kemenag' : settings.source === 'jakim' ? 'JAKIM' : 'Aladhan'}
@@ -353,13 +403,6 @@ export default function App() {
                   </>
                 )}
               </span>
-              
-              {apiError && (
-                <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-100 dark:border-amber-900/40 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  Local Fallback
-                </span>
-              )}
             </div>
           </div>
 
@@ -395,17 +438,6 @@ export default function App() {
             </div>
           </div>
         </header>
-
-        {/* Info notice about current database being used */}
-        {apiError && (
-          <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl flex gap-3 text-amber-800 dark:text-amber-300 text-xs">
-            <Info className="w-4 h-4 shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              <strong>Offline Precision Fallback:</strong> The online Aladhan database timing is currently unreachable.
-              We have automatically initiated the local high-precision astronomical engine so your schedule remains 100% active and accurate.
-            </p>
-          </div>
-        )}
 
         {/* Navigation Menu */}
         <nav className="flex overflow-x-auto hide-scrollbar space-x-2 p-1.5 bg-stone-100 dark:bg-stone-900 rounded-2xl w-full sm:w-fit border border-stone-200/60 dark:border-stone-800/80">
@@ -488,6 +520,7 @@ export default function App() {
                   onUpdateSettings={handleUpdateSettings}
                   onUpdateCoordinates={handleUpdateCoordinates}
                   onRequestGPS={handleRequestGPS}
+                  isRefreshing={isRefreshing}
                 />
               </section>
 
@@ -530,6 +563,9 @@ export default function App() {
                   </p>
                 </div>
               </div>
+              
+              {/* API Sync Logs Card */}
+              <SyncLogsViewer logs={apiLogs} />
             </section>
           )}
 
@@ -546,6 +582,7 @@ export default function App() {
         onRequestGPS={handleRequestGPS}
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
+        isRefreshing={isRefreshing}
       />
     </div>
   );
