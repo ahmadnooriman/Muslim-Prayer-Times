@@ -355,10 +355,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 space-y-4">
         
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-stone-200/60 dark:border-stone-800/60 pb-8">
+        <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-stone-200/60 dark:border-stone-800/60 pb-4">
           <div className="space-y-2 w-full md:w-auto">
             <h1 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 dark:text-stone-50 tracking-tight flex items-center gap-3">
               Muslim Prayer Times
@@ -372,9 +372,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsCityModalOpen(true)}
-                disabled={isRefreshing}
-                className={`text-xs bg-stone-100 hover:bg-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 px-3 py-1.5 rounded-full font-medium text-stone-800 dark:text-stone-200 transition-all duration-200 active:scale-95 flex items-center gap-1.5 border border-stone-200/40 dark:border-stone-800 shadow-xs ${isRefreshing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                title={isRefreshing ? "Syncing schedule..." : "Click to change city"}
+                disabled={isRefreshing || gpsLoading}
+                className={`text-xs bg-stone-100 hover:bg-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 px-3 py-1.5 rounded-full font-medium text-stone-800 dark:text-stone-200 transition-all duration-200 active:scale-95 flex items-center gap-1.5 border border-stone-200/40 dark:border-stone-800 shadow-xs ${isRefreshing || gpsLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                title={isRefreshing || gpsLoading ? "Syncing schedule..." : "Click to change city"}
               >
                 <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>{coordinates.city || 'Custom Coordinates'}, {coordinates.country || 'Custom'}</span>
@@ -465,12 +465,12 @@ export default function App() {
         </nav>
 
         {/* Dashboard Grid Layout */}
-        <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <main className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
           {activeTab === 'home' && (
             <>
               {/* Main Panel - Left Side (8 cols on lg) */}
-              <section className="lg:col-span-8 space-y-8">
+              <section className="lg:col-span-8 space-y-4">
                 {prayerTimes ? (
                   <>
                     {/* Countdown Widget */}
@@ -501,7 +501,7 @@ export default function App() {
               </section>
 
               {/* Secondary Panel - Right Side (4 cols on lg) */}
-              <aside className="lg:col-span-4 space-y-8">
+              <aside className="lg:col-span-4 space-y-4">
                 {/* Moon Phase Dynamic Card */}
                 <MoonPhaseCard date={now} />
               </aside>
@@ -510,7 +510,7 @@ export default function App() {
 
           {activeTab === 'settings' && (
             <>
-              <section className="lg:col-span-8 space-y-8">
+              <section className="lg:col-span-8 space-y-4">
                 {/* Core Settings / DB & Location Panel */}
                 <SettingsPanel 
                   settings={settings}
@@ -524,7 +524,7 @@ export default function App() {
                 />
               </section>
 
-              <aside className="lg:col-span-4 space-y-8">
+              <aside className="lg:col-span-4 space-y-4">
                 {prayerTimes && (
                   <PrayerAdjustments 
                     adjustments={settings.adjustments}
@@ -538,9 +538,9 @@ export default function App() {
           )}
 
           {activeTab === 'information' && (
-            <section className="lg:col-span-8 lg:col-start-3 space-y-8">
+            <section className="lg:col-span-8 lg:col-start-3 space-y-4">
               {/* General Information Card */}
-              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-8 shadow-sm space-y-6">
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-4">
                 <h4 className="font-serif font-bold text-xl text-stone-800 dark:text-stone-100 flex items-center gap-3">
                   <Info className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
                   Islamic Calculation Guide

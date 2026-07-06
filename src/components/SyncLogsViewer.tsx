@@ -10,7 +10,7 @@ export const SyncLogsViewer: React.FC<SyncLogsViewerProps> = ({ logs }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-8 shadow-sm space-y-6">
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="font-serif font-bold text-xl text-stone-800 dark:text-stone-100 flex items-center gap-3">
           <Activity className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
@@ -37,7 +37,7 @@ export const SyncLogsViewer: React.FC<SyncLogsViewerProps> = ({ logs }) => {
         </p>
         
         {logs.length === 0 ? (
-          <div className="p-8 text-center bg-stone-50 dark:bg-stone-950/40 rounded-2xl border border-stone-200/50 dark:border-stone-800/50">
+          <div className="p-4 text-center bg-stone-50 dark:bg-stone-950/40 rounded-2xl border border-stone-200/50 dark:border-stone-800/50">
             <Globe className="w-8 h-8 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
             <p className="text-sm text-stone-500 dark:text-stone-400">No sync logs recorded yet.</p>
           </div>

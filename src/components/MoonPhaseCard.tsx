@@ -38,7 +38,7 @@ export const MoonPhaseCard: React.FC<MoonPhaseCardProps> = ({ date }) => {
   const shadowPath = getMoonShadowPath(phase);
 
   return (
-    <div id="moon-phase-card" className="bg-stone-900 border border-stone-800 rounded-3xl p-6 text-stone-100 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+    <div id="moon-phase-card" className="bg-stone-900 border border-stone-800 rounded-3xl p-4 text-stone-100 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xl relative overflow-hidden">
       {/* Absolute ambient light effect */}
       <div className="absolute -right-24 -bottom-24 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl" />
       

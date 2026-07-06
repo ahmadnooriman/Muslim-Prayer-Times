@@ -33,7 +33,7 @@ export const PrayerAdjustments: React.FC<PrayerAdjustmentsProps> = ({
   const keys: (keyof PrayerAdjustment)[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
   return (
-    <div id="prayer-adjustments" className="bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6">
+    <div id="prayer-adjustments" className="bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 rounded-3xl p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between border-b border-stone-200/60 dark:border-stone-800/60 pb-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-800 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">

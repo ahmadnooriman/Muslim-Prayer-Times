@@ -106,7 +106,7 @@ export const CountdownWidget: React.FC<CountdownWidgetProps> = ({
   }, [hours, minutes, seconds, next, hasNotified]);
 
   return (
-    <div id="countdown-widget" className="bg-gradient-to-br from-stone-800 to-stone-900 border border-stone-800 rounded-3xl p-6 text-stone-100 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+    <div id="countdown-widget" className="bg-gradient-to-br from-stone-800 to-stone-900 border border-stone-800 rounded-3xl p-4 text-stone-100 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
       {/* Decorative ambient visual effects */}
       <div className="absolute -left-12 -top-12 w-32 h-32 rounded-full bg-emerald-500/10 blur-3xl" />
       <div className="absolute right-0 top-0 w-44 h-44 rounded-full bg-amber-500/5 blur-3xl" />

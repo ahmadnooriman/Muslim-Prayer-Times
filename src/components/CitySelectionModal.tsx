@@ -100,7 +100,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
             className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh] z-10"
           >
             {/* Modal Header */}
-            <div className="p-6 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
+            <div className="p-4 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-800 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
                   <Globe className="w-5 h-5" />
@@ -121,7 +121,7 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
             </div>
 
             {/* Modal Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
               {/* GPS Detection Card */}
               <div className="space-y-2">
                 <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
@@ -194,10 +194,10 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                     placeholder="Search city (e.g. Makkah, London, Jakarta, Cairo)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    disabled={isRefreshing}
-                    className={`w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl pl-10 pr-10 py-3 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all shadow-inner ${isRefreshing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={isRefreshing || gpsLoading}
+                    className={`w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 rounded-2xl pl-10 pr-10 py-3 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all shadow-inner ${isRefreshing || gpsLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
                   />
-                  {searchQuery && !isRefreshing && (
+                  {searchQuery && !isRefreshing && !gpsLoading && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
@@ -207,7 +207,6 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                     </button>
                   )}
                 </div>
-
                 {/* Cities List */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto p-1 border border-stone-100 dark:border-stone-800/80 rounded-2xl bg-stone-50/50 dark:bg-stone-950/20 custom-scrollbar">
                   {filteredCities.length > 0 ? (
@@ -217,13 +216,13 @@ export const CitySelectionModal: React.FC<CitySelectionModalProps> = ({
                         <button
                           key={`${city.name}-${city.country}`}
                           type="button"
-                          disabled={isRefreshing}
+                          disabled={isRefreshing || gpsLoading}
                           onClick={() => handleCitySelect(city)}
                           className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all active:scale-97 ${
                             isCurrent
                               ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 shadow-xs'
                               : 'bg-white dark:bg-stone-900 border-stone-200/60 dark:border-stone-800/80 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
-                          } ${isRefreshing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${isRefreshing || gpsLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <div className={`p-1.5 rounded-lg shrink-0 ${
                             isCurrent
