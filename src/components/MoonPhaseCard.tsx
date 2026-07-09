@@ -1,5 +1,4 @@
 import React from 'react';
-import { MoonPhaseData } from '../types';
 import { calculateMoonPhase } from '../utils/moonPhase';
 
 interface MoonPhaseCardProps {

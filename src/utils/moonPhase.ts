@@ -1,6 +1,6 @@
 import { MoonPhaseData } from '../types';
 
-export function getJulianDate(date: Date): number {
+function getJulianDate(date: Date): number {
   // Convert standard time to UTC milliseconds, divide by ms per day, add Julian constant
   return (date.getTime() / 86400000) + 2440587.5;
 }

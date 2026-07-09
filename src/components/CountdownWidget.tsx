@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PrayerTimesData } from '../types';
 import { getActivePrayerState, getCountdownTime, PRAYER_NAMES, PRAYER_ARABIC_NAMES, PrayerKey } from '../utils/prayerHelpers';
-import { Timer, Volume2, VolumeX, Moon } from 'lucide-react';
+import { Timer, Volume2, VolumeX } from 'lucide-react';
 
 interface CountdownWidgetProps {
   times: PrayerTimesData;

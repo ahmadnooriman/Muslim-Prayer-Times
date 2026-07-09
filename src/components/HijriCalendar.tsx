@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Info, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
-import { getIslamicEvents, IslamicEvent } from '../utils/islamicEvents';
-import { HijriDate } from '../types';
+import { getIslamicEvents } from '../utils/islamicEvents';
 
 interface HijriCalendarProps {
   today: Date;
@@ -143,7 +142,7 @@ export const HijriCalendar: React.FC<HijriCalendarProps> = ({ today, hijriOffset
           <div key={`empty-${i}`} className="aspect-square rounded-xl bg-stone-50/50 dark:bg-stone-900/30 border border-stone-100/50 dark:border-stone-800/30" />
         ))}
         
-        {monthData.days.map((dayData, i) => {
+        {monthData.days.map((dayData) => {
           const isToday = dayData.hijri.day === currentHijri.day && dayData.hijri.monthNumber === currentHijri.monthNumber && dayData.hijri.year === currentHijri.year;
           const hasHoliday = dayData.events.some(e => e.type === 'holiday');
           const hasFast = dayData.events.some(e => e.type === 'fast');

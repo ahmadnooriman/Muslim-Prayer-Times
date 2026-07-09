@@ -159,7 +159,6 @@ export function calculateLocalPrayerTimes(
   
   // Apply extreme latitude rules if Fajr or Isha calculation is impossible or requested
   const nightDuration = sunsetHour < sunriseHour ? (24 - sunriseHour + sunsetHour) : (sunsetHour - sunriseHour);
-  const nightStart = sunsetHour;
   
   let fajrHour = 0;
   
