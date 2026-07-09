@@ -13,7 +13,8 @@ import { MoonPhaseCard } from './components/MoonPhaseCard';
 import { CitySelectionModal } from './components/CitySelectionModal';
 import { SyncLogsViewer } from './components/SyncLogsViewer';
 import { POPULAR_CITIES, CityInfo } from './utils/cities';
-import { Calendar, ShieldCheck, WifiOff, Info, Sun, Moon, MapPin } from 'lucide-react';
+import { HijriCalendar } from './components/HijriCalendar';
+import { Calendar, ShieldCheck, WifiOff, Info, Sun, Moon, MapPin, Menu, X, Home, Settings as SettingsIcon } from 'lucide-react';
 
 // Default initial state
 const DEFAULT_COORDS: Coordinates = {
@@ -116,7 +117,8 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<{ text: string; type: 'success' | 'warning' } | null>(null);
   const [isCityModalOpen, setIsCityModalOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'settings' | 'information'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'settings' | 'information'>('home');
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [apiLogs, setApiLogs] = useState<ApiLog[]>([]);
 
   // Time ticker - runs once per second
@@ -406,13 +408,13 @@ export default function App() {
             </div>
           </div>
 
-          {/* Theme Switcher & Hijri & Gregorian Calendar display */}
-          <div className="flex items-center gap-3 self-stretch md:self-auto w-full md:w-auto">
+          {/* Theme Switcher & Hijri & Gregorian Calendar display & Burger Menu */}
+          <div className="flex items-center gap-2 sm:gap-3 self-stretch md:self-auto w-full md:w-auto relative">
             {/* Quick accessible theme switch for prayer times */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-3.5 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl shadow-sm hover:border-stone-300 dark:hover:border-stone-700 active:scale-95 transition-all text-stone-600 dark:text-stone-400 flex items-center justify-center shrink-0"
+              className="p-3 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl shadow-sm hover:border-stone-300 dark:hover:border-stone-700 active:scale-95 transition-all text-stone-600 dark:text-stone-400 flex items-center justify-center shrink-0"
               aria-label="Toggle eye-strain theme mode"
               title={isDarkMode ? "Switch to daylight mode" : "Switch to late-night eye-strain mode"}
             >
@@ -423,18 +425,64 @@ export default function App() {
               )}
             </button>
 
-            <div className="flex-1 md:flex-initial flex items-center gap-3.5 p-4 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800/80 rounded-2xl shadow-sm justify-between md:justify-start">
-              <div className="p-2.5 bg-amber-50/50 dark:bg-amber-950/40 rounded-xl text-amber-800 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30">
-                <Calendar className="w-5 h-5" />
+            <div className="flex-1 md:flex-initial flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800/80 rounded-2xl shadow-sm justify-between md:justify-start">
+              <div className="p-2 sm:p-2.5 bg-amber-50/50 dark:bg-amber-950/40 rounded-xl text-amber-800 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30 shrink-0">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="text-right sm:text-left">
-                <p className="font-serif text-base font-semibold text-stone-800 dark:text-stone-100 leading-tight">
+              <div className="text-right sm:text-left min-w-0">
+                <p className="font-serif text-sm sm:text-base font-semibold text-stone-800 dark:text-stone-100 leading-tight truncate">
                   {hijriDate.formatted}
                 </p>
-                <p className="text-xs text-stone-400 dark:text-stone-500 font-mono mt-0.5">
-                  {now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                <p className="text-[10px] sm:text-xs text-stone-400 dark:text-stone-500 font-mono mt-0.5 truncate">
+                  {now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
               </div>
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-3 bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl shadow-sm hover:border-stone-300 dark:hover:border-stone-700 active:scale-95 transition-all text-stone-600 dark:text-stone-400 flex items-center justify-center shrink-0"
+                aria-label="Menu"
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
+              <AnimatePresence>
+                {isMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xl z-50 overflow-hidden"
+                  >
+                    <div className="py-2">
+                      <button
+                        onClick={() => { setActiveTab('home'); setIsMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-colors"
+                      >
+                        <Home className="w-4 h-4 text-stone-400" />
+                        Home
+                      </button>
+                      <button
+                        onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-colors"
+                      >
+                        <SettingsIcon className="w-4 h-4 text-stone-400" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => { setActiveTab('information'); setIsMenuOpen(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-colors"
+                      >
+                        <Info className="w-4 h-4 text-stone-400" />
+                        Information
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
@@ -446,31 +494,23 @@ export default function App() {
             onClick={() => setActiveTab('home')} 
             className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'home' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
           >
-            Home
+            Salah
           </button>
           <button 
             type="button"
-            onClick={() => setActiveTab('settings')} 
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'settings' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
+            onClick={() => setActiveTab('calendar')} 
+            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'calendar' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
           >
-            Settings
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('information')} 
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${activeTab === 'information' ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50'}`}
-          >
-            Information
+            Calendar
           </button>
         </nav>
 
         {/* Dashboard Grid Layout */}
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {activeTab === 'home' && (
-            <>
-              {/* Main Panel - Left Side (8 cols on lg) */}
-              <section className="lg:col-span-8 space-y-4">
+          <section className="lg:col-span-8 space-y-4">
+            {activeTab === 'home' && (
+              <>
                 {prayerTimes ? (
                   <>
                     {/* Countdown Widget */}
@@ -498,77 +538,76 @@ export default function App() {
                     <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">Please wait while we determine coordinates and astronomical angles...</p>
                   </div>
                 )}
-              </section>
+              </>
+            )}
 
-              {/* Secondary Panel - Right Side (4 cols on lg) */}
-              <aside className="lg:col-span-4 space-y-4">
-                {/* Moon Phase Dynamic Card */}
-                <MoonPhaseCard date={now} />
-              </aside>
-            </>
-          )}
+            {activeTab === 'calendar' && (
+               <HijriCalendar today={now} hijriOffset={settings.hijriOffset} />
+            )}
 
-          {activeTab === 'settings' && (
-            <>
-              <section className="lg:col-span-8 space-y-4">
-                {/* Core Settings / DB & Location Panel */}
-                <SettingsPanel 
-                  settings={settings}
-                  coordinates={coordinates}
-                  gpsSupported={gpsSupported}
-                  gpsLoading={gpsLoading}
-                  onUpdateSettings={handleUpdateSettings}
-                  onUpdateCoordinates={handleUpdateCoordinates}
-                  onRequestGPS={handleRequestGPS}
-                  isRefreshing={isRefreshing}
-                />
-              </section>
+            {activeTab === 'settings' && (
+              <SettingsPanel 
+                settings={settings}
+                coordinates={coordinates}
+                gpsSupported={gpsSupported}
+                gpsLoading={gpsLoading}
+                onUpdateSettings={handleUpdateSettings}
+                onUpdateCoordinates={handleUpdateCoordinates}
+                onRequestGPS={handleRequestGPS}
+                isRefreshing={isRefreshing}
+              />
+            )}
 
-              <aside className="lg:col-span-4 space-y-4">
-                {prayerTimes && (
-                  <PrayerAdjustments 
-                    adjustments={settings.adjustments}
-                    hijriOffset={settings.hijriOffset}
-                    onUpdateAdjustments={(adj) => handleUpdateSettings({ ...settings, adjustments: adj })}
-                    onUpdateHijriOffset={(offset) => handleUpdateSettings({ ...settings, hijriOffset: offset })}
-                  />
-                )}
-              </aside>
-            </>
-          )}
-
-          {activeTab === 'information' && (
-            <section className="lg:col-span-8 lg:col-start-3 space-y-4">
-              {/* General Information Card */}
-              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-4">
-                <h4 className="font-serif font-bold text-xl text-stone-800 dark:text-stone-100 flex items-center gap-3">
-                  <Info className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
-                  Islamic Calculation Guide
-                </h4>
-                <div className="space-y-4">
-                  <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
-                    Prayer times are computed astronomically using the Sun's altitude angles relative to the horizon. 
-                    Slight variations exist between international organizations (databases) due to differing twilight angles:
-                  </p>
-                  <ul className="text-sm text-stone-600 dark:text-stone-300 space-y-3 list-disc pl-6 leading-normal">
-                    <li><strong>Umm Al-Qura:</strong> Official Saudi Arabian standard (Fajr 18.5°, Isha fixed interval).</li>
-                    <li><strong>Kemenag:</strong> Kementerian Agama RI, official Indonesian standard (Fajr 20°, Isha 18°).</li>
-                    <li><strong>JAKIM:</strong> Jabatan Kemajuan Islam Malaysia, official Malaysian standard (Fajr 20°, Isha 18°).</li>
-                    <li><strong>MWL:</strong> Muslim World League standard (Fajr 18°, Isha 17°).</li>
-                    <li><strong>ISNA:</strong> North American standard (Fajr 15°, Isha 15°).</li>
-                    <li><strong>Karachi:</strong> University of Islamic Sciences standard (Fajr 18°, Isha 18°).</li>
-                  </ul>
-                  <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed italic border-t border-stone-100 dark:border-stone-800/80 pt-4 mt-6">
-                    Note: In extreme northern/southern latitudes, twilight can persist all night. Use the "High Latitude Rules" option in Settings to prevent calculation errors.
-                  </p>
+            {activeTab === 'information' && (
+              <>
+                {/* General Information Card */}
+                <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-4">
+                  <h4 className="font-serif font-bold text-xl text-stone-800 dark:text-stone-100 flex items-center gap-3">
+                    <Info className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
+                    Islamic Calculation Guide
+                  </h4>
+                  <div className="space-y-4">
+                    <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+                      Prayer times are computed astronomically using the Sun's altitude angles relative to the horizon. 
+                      Slight variations exist between international organizations (databases) due to differing twilight angles:
+                    </p>
+                    <ul className="text-sm text-stone-600 dark:text-stone-300 space-y-3 list-disc pl-6 leading-normal">
+                      <li><strong>Umm Al-Qura:</strong> Official Saudi Arabian standard (Fajr 18.5°, Isha fixed interval).</li>
+                      <li><strong>Kemenag:</strong> Kementerian Agama RI, official Indonesian standard (Fajr 20°, Isha 18°).</li>
+                      <li><strong>JAKIM:</strong> Jabatan Kemajuan Islam Malaysia, official Malaysian standard (Fajr 20°, Isha 18°).</li>
+                      <li><strong>MWL:</strong> Muslim World League standard (Fajr 18°, Isha 17°).</li>
+                      <li><strong>ISNA:</strong> North American standard (Fajr 15°, Isha 15°).</li>
+                      <li><strong>Karachi:</strong> University of Islamic Sciences standard (Fajr 18°, Isha 18°).</li>
+                    </ul>
+                    <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed italic border-t border-stone-100 dark:border-stone-800/80 pt-4 mt-6">
+                      Note: In extreme northern/southern latitudes, twilight can persist all night. Use the "High Latitude Rules" option in Settings to prevent calculation errors.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* API Sync Logs Card */}
-              <SyncLogsViewer logs={apiLogs} />
-            </section>
-          )}
+                
+                {/* API Sync Logs Card */}
+                <SyncLogsViewer logs={apiLogs} />
+              </>
+            )}
+          </section>
 
+          {/* Persistent Right Side */}
+          <aside className="lg:col-span-4 space-y-4">
+            {/* Moon Phase Dynamic Card (Visible on home and calendar tabs) */}
+            {(activeTab === 'home' || activeTab === 'calendar') && (
+              <MoonPhaseCard date={now} />
+            )}
+
+            {/* Tab-specific sidecards */}
+            {activeTab === 'settings' && prayerTimes && (
+              <PrayerAdjustments 
+                adjustments={settings.adjustments}
+                hijriOffset={settings.hijriOffset}
+                onUpdateAdjustments={(adj) => handleUpdateSettings({ ...settings, adjustments: adj })}
+                onUpdateHijriOffset={(offset) => handleUpdateSettings({ ...settings, hijriOffset: offset })}
+              />
+            )}
+          </aside>
         </main>
       </div>
 
